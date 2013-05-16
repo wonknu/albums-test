@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html >
+    <head>
+        <title>Backbone test</title>
+        <script src="scripts/jquery-1.7.1.js" type="text/javascript"></script>
+        <script src="scripts/underscore.js" type="text/javascript"></script>
+        <script src="scripts/backbone.js" type="text/javascript"></script>
+        <style>div.table {display: table;}div.tableRow {display: table-row}div.tableCell {display: table-cell; border:#737373 solid 1px; padding: 5px;}</style>
+    </head>
+    <body>
+        Albums : 
+        <div id="container-albumList" class="table"></div>
+        Songs :
+        <div id="container-songList" class="table"></div>
+        <!-- Album single item template -->
+        <script type="text/template" id="template-albumItem">
+            <div id="name" class="tableCell"><%=title%></div>
+        </script>
+        <!-- Song single item template -->
+        <script type="text/template" id="template-songItem">
+            <div id="name" class="tableCell"><%=title%></div>
+        </script>
+        
+        <script type="text/javascript">
+            //************************************************************************** MODEL
+            // manage individual album model
+            var Album = Backbone.Model.extend({  });
+            var Song = Backbone.Model.extend({  });
+     
+            //************************************************************************** COLLECTION
+            // store and manage group of individual album models
+            var Albums = Backbone.Collection.extend({ model: Album });
+            var Songs = Backbone.Collection.extend({ model: Song });
+            
+            //************************************************************************** VIEW (which is a list of other view)
+            // manage div#container-albumList ->  individual album views will be added to this view
+            // Which means this view has a collection of views, like a daddy view
+            var AlbumListView = Backbone.View.extend({
+                type: "AlbumListView", // for debugging
+                el: "#container-albumList",
+                initialize: function () {},
+                render: function ()
+                {
+                    _.each(this.collection.models, this.processAlbum, this); // loop through each models, and call processAlbum(), where 'this' reference the current model
+                    return this;
+                },
+                processAlbum: function (album)
+                { // Render an album from the model
+                    var childAlbumItemView = new AlbumItemView({ model: album });
+                    childAlbumItemView.render();
+                    $(this.el).append(childAlbumItemView.el);
+                }
+            });
+            
+            var SongListView = Backbone.View.extend({
+                type: "SongListView", // for debugging
+                el: "#container-songList",
+                initialize: function () {}, // collection: This will be passed in during initialization
+                render: function ()
+                {
+                    $(this.el).html(""); // reset html content
+                    _.each(this.collection.models, this.processSong, this); // loop through each models, and call processSong(), where 'this' reference the current model
+                    return this;
+                },
+                processSong: function (song)
+                { // Render a song from the model
+                    var childSongItemView = new SongItemView({ model: song });
+                    childSongItemView.render();
+                    $(this.el).append(childSongItemView.el);
+                }
+            });
+            
+            //************************************************************************** VIEW ( those are not collection )
+            // manage individual album element
+            var AlbumItemView = Backbone.View.extend({
+                type: "AlbumItemView", // for debugging
+                template: _.template( $("#template-albumItem").html() ),
+                tagName: "div",
+                className: "tableRow",
+                initialize: function () {},
+                events : {
+                    "click": "displaySongs"
+                },
+                render: function ()
+                {
+                    var outputHtml = this.template(this.model.toJSON());
+                    $(this.el).html(outputHtml);
+                    return this;
+                },
+                displaySongs: function (evt)
+                {
+                    app_router.navigate('album/' + this.model.get("id"), true);
+                }
+            });
+            
+            // manage individual song element
+            var SongItemView = Backbone.View.extend({
+                type: "SongItemView", // for debugging
+                template: _.template( $("#template-songItem").html() ),
+                tagName: "div",
+                className: "tableRow",
+                initialize: function () {},
+                render: function ()
+                {
+                    var outputHtml = this.template(this.model.toJSON());
+                    $(this.el).html(outputHtml);
+                    return this;
+                }
+            });
+            
+            //************************************************************************** DATAS
+            // id, title are album's data (album's model)
+            // songs are son's data (song's model)
+            var myAlbums = [
+                { "id": "0", "title": "Dying is your latest fashion", "songs" : [
+                        {"title" : "The Webs We Weave"},
+                        {"title" : "When I Go Out, I Want To Go Out On A Chariot Of Fire"},
+                        {"title" : "Situations"},
+                        {"title" : "..."}
+                    ]
+                },
+                { "id": "1", "title": "This war is our", "songs" : [
+                        {"title" : "We Dont Back Dont"},
+                        {"title" : "On To The Next One"},
+                        {"title" : "Ashley"},
+                        {"title" : "..."}
+                    ]
+                },
+                { "id": "2", "title": "Escape the fate", "songs" : [
+                        {"title" : "Choose Your Fate"},
+                        {"title" : "Massacre"},
+                        {"title" : "Issues"},
+                        {"title" : "..."}
+                    ]
+                },
+                { "id": "3", "title": "Ungrateful", "songs" : [
+                        {"title" : "Ungrateful"},
+                        {"title" : "Until We Die"},
+                        {"title" : "Live Fast, Die Beautiful"},
+                        {"title" : "..."}
+                    ]
+                },
+            ];
+            
+            //************************************************************************** ROUTER
+            var AppRouter = Backbone.Router.extend({
+                routes: {
+                    "album/:id": "getSongs", // use to render songs from an albume, id = album's id
+                    "*actions": "defaultRoute"
+                },
+                defaultRoute: function (action)
+                { // Render list of album
+                    var albums = new Albums(myAlbums); // Create collection
+                    var albumListView = new AlbumListView({ collection: albums }); // Create AlbumListView and pass-in the albums
+                    albumListView.render(); // render AlbumListView
+                },
+                getSongs: function (id)
+                { // Render list of songs from an album
+                    var songs = new Songs(myAlbums[id].songs); // Create collection
+                    var songListView = new SongListView({ collection: songs }); // Create SongListView and pass-in the songs
+                    songListView.render(); // render AlbumListView
+                }
+            });
+            
+            var app_router = new AppRouter(); // Instantiate the router
+            Backbone.history.start(); // Start Backbone history
+        </script>
+    </body>
+</html>
